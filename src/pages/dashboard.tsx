@@ -2,8 +2,11 @@ import React, { useEffect, useState } from "react";
 import { 
   Plus, Calendar, Share2, X, Check, Ticket, DollarSign, 
   Lock, Unlock, AlertCircle, Loader2, Copy, Download, Eye,
-  BarChart3, TrendingUp, Users, Upload, Image as ImageIcon
+  BarChart3, TrendingUp, Users, Upload, MapPin, Clock,
+  Sparkles, Zap, Star, ChevronRight, Search, Filter
 } from "lucide-react";
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 
 const BACKEND_URL = "http://localhost:4000";
 
@@ -24,8 +27,8 @@ const INITIAL_FORM_STATE = {
 
 const MODES = ["virtual", "in-person"];
 const PERMISSIONS = [
-  { value: "open", label: "Open" },
-  { value: "approval", label: "Approval Required" }
+  { value: "open", label: "Open", icon: Unlock },
+  { value: "approval", label: "Approval Required", icon: Lock }
 ];
 
 // Validation Helper
@@ -87,96 +90,144 @@ const formatTime = (timeString) => {
 
 const getAvailableSeats = (event) => (event.maxSeats || 0) - (event.soldSeats || 0);
 
-// Event Card Component
+// Enhanced Event Card Component with Modern Design
 function EventCard({ event, onClick, isPurchased = false, isHosted = false }) {
   const availableSeats = getAvailableSeats(event);
   const isSoldOut = availableSeats <= 0;
+  const occupancyRate = ((event.soldSeats / event.maxSeats) * 100).toFixed(0);
 
   return (
     <div
       onClick={onClick}
-      className="bg-slate-900/60 border border-slate-800 hover:border-slate-700 cursor-pointer transition hover:scale-105 rounded-lg overflow-hidden flex flex-col h-full"
+      className="group relative bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border border-slate-700/50 hover:border-blue-500/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/10 rounded-2xl overflow-hidden"
     >
-      {/* Image */}
-      <div className="h-40 bg-gradient-to-br from-blue-900 to-slate-900 overflow-hidden flex-shrink-0">
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      
+      {/* Image with Overlay */}
+      <div className="relative h-48 overflow-hidden">
         {event.banner || event.imageUrl ? (
-          <img
-            src={event.banner || event.imageUrl}
-            alt={event.eventName}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.target.style.display = "none";
-            }}
-          />
+          <>
+            <img
+              src={event.banner || event.imageUrl}
+              alt={event.eventName}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent" />
+          </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Calendar className="text-slate-600" size={48} />
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-900/20 to-purple-900/20">
+            <Calendar className="text-slate-600" size={56} />
           </div>
         )}
+        
+        {/* Top Badges */}
+        <div className="absolute top-3 left-3 right-3 flex items-start justify-between">
+          <div className="flex gap-2">
+            {event.permission === "open" ? (
+              <div className="bg-green-500/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                <Unlock size={12} />
+                Open
+              </div>
+            ) : (
+              <div className="bg-yellow-500/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                <Lock size={12} />
+                Approval
+              </div>
+            )}
+            
+            {event.ticketPrice === 0 && (
+              <div className="bg-emerald-500/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                <Sparkles size={12} />
+                Free
+              </div>
+            )}
+          </div>
+          
+          {isPurchased && (
+            <div className="bg-blue-500/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium">
+              ✓ Owned
+            </div>
+          )}
+          
+          {isHosted && (
+            <div className="bg-purple-500/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium">
+              👤 Hosting
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="p-4 space-y-3 flex-1 flex flex-col">
-        {/* Permission Badge */}
-        <div className="flex items-center gap-2">
-          {event.permission === "open" ? (
-            <Unlock size={14} className="text-green-400" />
-          ) : (
-            <Lock size={14} className="text-yellow-400" />
-          )}
-          <span className="text-xs font-medium text-slate-400 capitalize">
-            {event.permission}
-          </span>
-        </div>
-
+      <div className="relative p-5 space-y-4">
         {/* Title */}
-        <h3 className="font-semibold text-white truncate flex-1">
+        <h3 className="font-bold text-xl text-white line-clamp-2 group-hover:text-blue-400 transition-colors">
           {event.eventName}
         </h3>
 
         {/* Date & Time */}
-        <div className="flex items-center gap-2 text-sm text-slate-400">
-          <Calendar size={14} />
-          <span>
-            {formatDate(event.date)} · {formatTime(event.time)}
-          </span>
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-2 text-slate-300">
+            <Calendar size={16} className="text-blue-400" />
+            <span>{formatDate(event.date)}</span>
+          </div>
+          <div className="flex items-center gap-2 text-slate-300">
+            <Clock size={16} className="text-blue-400" />
+            <span>{formatTime(event.time)}</span>
+          </div>
         </div>
 
-        {/* Seats */}
-        {!isPurchased && !isHosted && (
+        {/* Location */}
+        {event.location && event.location !== "null" && (
           <div className="flex items-center gap-2 text-sm text-slate-400">
-            <Ticket size={14} />
-            <span className={isSoldOut ? "text-red-400 font-medium" : ""}>
-              {availableSeats}/{event.maxSeats} seats
-            </span>
+            <MapPin size={16} className="text-blue-400 flex-shrink-0" />
+            <span className="truncate">{event.location}</span>
           </div>
         )}
 
-        {/* Price */}
-        {event.ticketPrice > 0 && (
-          <div className="flex items-center gap-2 text-sm text-emerald-400 font-medium">
-            <DollarSign size={14} />
-            <span>{event.ticketPrice} APT</span>
+        {/* Seats Progress Bar */}
+        {!isPurchased && !isHosted && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">Availability</span>
+              <span className={isSoldOut ? "text-red-400 font-semibold" : "text-slate-300 font-semibold"}>
+                {availableSeats}/{event.maxSeats} seats
+              </span>
+            </div>
+            <div className="w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  isSoldOut ? "bg-red-500" : occupancyRate > 80 ? "bg-yellow-500" : "bg-blue-500"
+                }`}
+                style={{ width: `${occupancyRate}%` }}
+              />
+            </div>
           </div>
         )}
 
-        {/* Sold Out Badge */}
+        {/* Price & CTA */}
+        <div className="flex items-center justify-between pt-2 border-t border-slate-700/50">
+          {event.ticketPrice > 0 ? (
+            <div className="flex items-center gap-1">
+              <DollarSign size={18} className="text-emerald-400" />
+              <span className="text-lg font-bold text-emerald-400">{event.ticketPrice}</span>
+              <span className="text-xs text-slate-400">APT</span>
+            </div>
+          ) : (
+            <span className="text-lg font-bold text-emerald-400">Free</span>
+          )}
+          
+          <ChevronRight size={20} className="text-blue-400 group-hover:translate-x-1 transition-transform" />
+        </div>
+
+        {/* Sold Out Overlay */}
         {isSoldOut && !isPurchased && !isHosted && (
-          <div className="bg-red-500/20 border border-red-500/50 rounded px-2 py-1 text-center mt-2">
-            <span className="text-xs font-medium text-red-400">Sold Out</span>
-          </div>
-        )}
-
-        {/* Ticket Purchased Badge */}
-        {isPurchased && (
-          <div className="bg-green-500/20 border border-green-500/50 rounded px-2 py-1 text-center mt-2">
-            <span className="text-xs font-medium text-green-400">✓ Ticket Purchased</span>
-          </div>
-        )}
-
-        {/* Hosted Badge */}
-        {isHosted && (
-          <div className="bg-blue-500/20 border border-blue-500/50 rounded px-2 py-1 text-center mt-2">
-            <span className="text-xs font-medium text-blue-400">👤 You're Hosting</span>
+          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center rounded-2xl">
+            <div className="bg-red-500/20 border-2 border-red-500 rounded-xl px-6 py-3">
+              <span className="text-xl font-bold text-red-400">SOLD OUT</span>
+            </div>
           </div>
         )}
       </div>
@@ -184,83 +235,79 @@ function EventCard({ event, onClick, isPurchased = false, isHosted = false }) {
   );
 }
 
-// Loading State Component
+// Modern Loading State
 function LoadingState() {
   return (
-    <div className="flex items-center justify-center py-12">
-      <Loader2 className="animate-spin text-blue-400" size={32} />
-    </div>
-  );
-}
-
-// Empty State Component
-function EmptyState({ message }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <Calendar className="text-slate-600 mb-4" size={48} />
-      <p className="text-slate-400">{message}</p>
-    </div>
-  );
-}
-
-// Error State Component
-function ErrorState({ message, onRetry }) {
-  return (
-    <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
-      <div className="flex items-start gap-3">
-        <AlertCircle className="text-red-400 flex-shrink-0 mt-0.5" size={20} />
-        <div className="flex-1">
-          <p className="text-red-400 font-medium">{message}</p>
-          {onRetry && (
-            <button
-              onClick={onRetry}
-              className="mt-2 text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-            >
-              Try Again
-            </button>
-          )}
+    <div className="flex flex-col items-center justify-center py-16">
+      <div className="relative">
+        <Loader2 className="animate-spin text-blue-500" size={48} />
+        <div className="absolute inset-0 animate-ping">
+          <Loader2 className="text-blue-500/30" size={48} />
         </div>
       </div>
+      <p className="mt-4 text-slate-400">Loading amazing events...</p>
     </div>
   );
 }
 
-// Create Event Form Component with File Upload
+// Enhanced Empty State
+function EmptyState({ message, icon: Icon = Calendar }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="relative mb-6">
+        <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full" />
+        <Icon className="relative text-slate-600" size={64} />
+      </div>
+      <p className="text-xl text-slate-400 mb-2">{message}</p>
+      <p className="text-sm text-slate-500">Start exploring or create your first event</p>
+    </div>
+  );
+}
+
+// Modern Error State
+function ErrorState({ message, onRetry }) {
+  return (
+    <Alert className="bg-red-500/10 border-red-500/50">
+      <AlertCircle className="h-4 w-4 text-red-400" />
+      <AlertDescription className="text-red-400">
+        {message}
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="ml-4 underline hover:text-red-300"
+          >
+            Try Again
+          </button>
+        )}
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+// Enhanced Create Event Form
 function CreateEventForm({ formData, onInputChange, onSubmit, isLoading, errors }) {
   const fileInputRef = React.useRef(null);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         alert('Please select an image file');
         return;
       }
 
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert('File size must be less than 5MB');
         return;
       }
 
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         onInputChange({
-          target: {
-            name: 'banner',
-            value: file,
-            type: 'file',
-          }
+          target: { name: 'banner', value: file, type: 'file' }
         });
-        // Store preview separately
         onInputChange({
-          target: {
-            name: 'bannerPreview',
-            value: reader.result,
-            type: 'text',
-          }
+          target: { name: 'bannerPreview', value: reader.result, type: 'text' }
         });
       };
       reader.readAsDataURL(file);
@@ -268,61 +315,50 @@ function CreateEventForm({ formData, onInputChange, onSubmit, isLoading, errors 
   };
 
   const handleRemoveBanner = () => {
-    onInputChange({
-      target: {
-        name: 'banner',
-        value: null,
-        type: 'file',
-      }
-    });
-    onInputChange({
-      target: {
-        name: 'bannerPreview',
-        value: null,
-        type: 'text',
-      }
-    });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    onInputChange({ target: { name: 'banner', value: null, type: 'file' } });
+    onInputChange({ target: { name: 'bannerPreview', value: null, type: 'text' } });
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Banner Upload */}
-      <div>
-        <label className="block text-sm font-medium text-white mb-2">
-          Event Banner Image
+      <div className="space-y-3">
+        <label className="block text-sm font-semibold text-white">
+          Event Banner
         </label>
         
         {formData.bannerPreview ? (
-          <div className="relative group">
+          <div className="relative group rounded-xl overflow-hidden border-2 border-slate-700">
             <img
               src={formData.bannerPreview}
               alt="Banner preview"
-              className="w-full h-32 object-cover rounded-lg border border-slate-700"
+              className="w-full h-40 object-cover"
             />
-            <button
-              type="button"
-              onClick={handleRemoveBanner}
-              disabled={isLoading}
-              className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition disabled:opacity-50"
-            >
-              <X size={16} />
-            </button>
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <button
+                type="button"
+                onClick={handleRemoveBanner}
+                disabled={isLoading}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
+              >
+                <X size={16} />
+                Remove
+              </button>
+            </div>
           </div>
         ) : (
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isLoading}
-            className="w-full border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-lg p-4 text-center transition disabled:opacity-50"
+            className="w-full border-2 border-dashed border-slate-600 hover:border-blue-500 rounded-xl p-8 text-center transition-all duration-300 hover:bg-slate-800/50 group"
           >
-            <Upload className="mx-auto mb-2 text-slate-400" size={24} />
-            <p className="text-sm text-slate-400">
+            <Upload className="mx-auto mb-3 text-slate-500 group-hover:text-blue-400 transition-colors" size={32} />
+            <p className="text-sm font-medium text-slate-400 group-hover:text-slate-300">
               Click to upload banner image
             </p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-2">
               PNG, JPG, GIF up to 5MB
             </p>
           </button>
@@ -338,46 +374,55 @@ function CreateEventForm({ formData, onInputChange, onSubmit, isLoading, errors 
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-white mb-1">Event Name *</label>
+      {/* Event Name */}
+      <div className="space-y-2">
+        <label className="block text-sm font-semibold text-white">Event Name *</label>
         <input
           name="eventName"
           value={formData.eventName}
           onChange={onInputChange}
-          placeholder="Enter event name"
+          placeholder="Enter an exciting event name"
           disabled={isLoading}
-          className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-white placeholder-slate-500 disabled:opacity-50"
+          className="w-full bg-slate-800/50 border-2 border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white placeholder-slate-500 transition-colors focus:outline-none"
         />
         {errors.eventName && (
-          <p className="text-red-400 text-xs mt-1">{errors.eventName}</p>
+          <p className="text-red-400 text-xs flex items-center gap-1">
+            <AlertCircle size={12} />
+            {errors.eventName}
+          </p>
         )}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-white mb-1">Description *</label>
+      {/* Description */}
+      <div className="space-y-2">
+        <label className="block text-sm font-semibold text-white">Description *</label>
         <textarea
           name="eventDescription"
           value={formData.eventDescription}
           onChange={onInputChange}
-          placeholder="Describe your event"
+          placeholder="Describe what makes your event special"
           disabled={isLoading}
-          rows="3"
-          className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-white placeholder-slate-500 disabled:opacity-50"
+          rows="4"
+          className="w-full bg-slate-800/50 border-2 border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white placeholder-slate-500 transition-colors focus:outline-none resize-none"
         />
         {errors.eventDescription && (
-          <p className="text-red-400 text-xs mt-1">{errors.eventDescription}</p>
+          <p className="text-red-400 text-xs flex items-center gap-1">
+            <AlertCircle size={12} />
+            {errors.eventDescription}
+          </p>
         )}
       </div>
 
+      {/* Mode & Location */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-white mb-1">Mode *</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-white">Mode *</label>
           <select
             name="mode"
             value={formData.mode}
             onChange={onInputChange}
             disabled={isLoading}
-            className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-white disabled:opacity-50"
+            className="w-full bg-slate-800/50 border-2 border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white transition-colors focus:outline-none"
           >
             {MODES.map((mode) => (
               <option key={mode} value={mode}>
@@ -387,54 +432,62 @@ function CreateEventForm({ formData, onInputChange, onSubmit, isLoading, errors 
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-white mb-1">Location *</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-white">Location</label>
           <input
             name="location"
             value={formData.location}
             onChange={onInputChange}
             placeholder={formData.mode === "virtual" ? "Virtual" : "City, Country"}
             disabled={isLoading}
-            className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-white placeholder-slate-500 disabled:opacity-50"
+            className="w-full bg-slate-800/50 border-2 border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white placeholder-slate-500 transition-colors focus:outline-none"
           />
         </div>
       </div>
 
+      {/* Date & Time */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-white mb-1">Date *</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-white">Date *</label>
           <input
             type="date"
             name="date"
             value={formData.date}
             onChange={onInputChange}
             disabled={isLoading}
-            className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-white disabled:opacity-50"
+            className="w-full bg-slate-800/50 border-2 border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white transition-colors focus:outline-none"
           />
           {errors.date && (
-            <p className="text-red-400 text-xs mt-1">{errors.date}</p>
+            <p className="text-red-400 text-xs flex items-center gap-1">
+              <AlertCircle size={12} />
+              {errors.date}
+            </p>
           )}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-white mb-1">Time (HH:MM) *</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-white">Time *</label>
           <input
             type="time"
             name="time"
             value={formData.time}
             onChange={onInputChange}
             disabled={isLoading}
-            className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-white disabled:opacity-50"
+            className="w-full bg-slate-800/50 border-2 border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white transition-colors focus:outline-none"
           />
           {errors.time && (
-            <p className="text-red-400 text-xs mt-1">{errors.time}</p>
+            <p className="text-red-400 text-xs flex items-center gap-1">
+              <AlertCircle size={12} />
+              {errors.time}
+            </p>
           )}
         </div>
       </div>
 
+      {/* Price & Seats */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-white mb-1">Ticket Price (APT) *</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-white">Ticket Price (APT) *</label>
           <input
             type="number"
             name="ticketPrice"
@@ -444,15 +497,18 @@ function CreateEventForm({ formData, onInputChange, onSubmit, isLoading, errors 
             min="0"
             step="0.01"
             disabled={isLoading}
-            className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-white placeholder-slate-500 disabled:opacity-50"
+            className="w-full bg-slate-800/50 border-2 border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white placeholder-slate-500 transition-colors focus:outline-none"
           />
           {errors.ticketPrice && (
-            <p className="text-red-400 text-xs mt-1">{errors.ticketPrice}</p>
+            <p className="text-red-400 text-xs flex items-center gap-1">
+              <AlertCircle size={12} />
+              {errors.ticketPrice}
+            </p>
           )}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-white mb-1">Max Seats *</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-white">Max Seats *</label>
           <input
             type="number"
             name="maxSeats"
@@ -461,44 +517,54 @@ function CreateEventForm({ formData, onInputChange, onSubmit, isLoading, errors 
             placeholder="1"
             min="1"
             disabled={isLoading}
-            className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-white placeholder-slate-500 disabled:opacity-50"
+            className="w-full bg-slate-800/50 border-2 border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white placeholder-slate-500 transition-colors focus:outline-none"
           />
           {errors.maxSeats && (
-            <p className="text-red-400 text-xs mt-1">{errors.maxSeats}</p>
+            <p className="text-red-400 text-xs flex items-center gap-1">
+              <AlertCircle size={12} />
+              {errors.maxSeats}
+            </p>
           )}
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-white mb-1">Permission *</label>
-        <select
-          name="permission"
-          value={formData.permission}
-          onChange={onInputChange}
-          disabled={isLoading}
-          className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-white disabled:opacity-50"
-        >
-          {PERMISSIONS.map(({ value, label }) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
+      {/* Permission */}
+      <div className="space-y-2">
+        <label className="block text-sm font-semibold text-white">Permission *</label>
+        <div className="grid grid-cols-2 gap-3">
+          {PERMISSIONS.map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onInputChange({ target: { name: 'permission', value } })}
+              disabled={isLoading}
+              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all ${
+                formData.permission === value
+                  ? 'border-blue-500 bg-blue-500/20 text-blue-400'
+                  : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600'
+              }`}
+            >
+              <Icon size={16} />
+              <span className="font-medium">{label}</span>
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
+      {/* Submit Button */}
       <button
         onClick={onSubmit}
         disabled={isLoading}
-        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:opacity-50 text-white font-medium py-2 rounded-md transition flex items-center justify-center gap-2"
+        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-700 disabled:to-slate-700 text-white font-bold py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 disabled:shadow-none"
       >
         {isLoading ? (
           <>
-            <Loader2 className="animate-spin" size={16} />
-            Creating...
+            <Loader2 className="animate-spin" size={20} />
+            Creating your event...
           </>
         ) : (
           <>
-            <Check size={16} />
+            <Zap size={20} />
             Create Event
           </>
         )}
@@ -507,7 +573,7 @@ function CreateEventForm({ formData, onInputChange, onSubmit, isLoading, errors 
   );
 }
 
-// Analytics Modal Component
+// Analytics Modal with Enhanced Design
 function AnalyticsModal({ event, onClose }) {
   if (!event) return null;
 
@@ -516,133 +582,142 @@ function AnalyticsModal({ event, onClose }) {
   const revenue = event.ticketPrice * event.soldSeats;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 border border-slate-800 text-white rounded-lg max-w-md w-full max-h-screen overflow-y-auto">
-        {/* Close button */}
-        <div className="flex justify-between items-center p-4 border-b border-slate-800">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <BarChart3 size={24} />
-            Analytics
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border border-slate-700 text-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 p-6 flex justify-between items-center z-10">
+          <h2 className="text-3xl font-bold flex items-center gap-3">
+            <BarChart3 size={32} className="text-blue-400" />
+            Analytics Dashboard
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded"
+            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
           >
-            <X size={20} />
+            <X size={24} />
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
-          {/* Event Title */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded p-4">
-            <h3 className="text-lg font-semibold text-white">
+        <div className="p-6 space-y-6">
+          {/* Event Title Card */}
+          <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl p-6">
+            <h3 className="text-2xl font-bold text-white mb-2">
               {event.eventName}
             </h3>
-            <p className="text-xs text-slate-400 mt-1">
-              {formatDate(event.date)} · {formatTime(event.time)}
-            </p>
-          </div>
-
-          {/* Tickets Sold */}
-          <div className="bg-blue-500/20 border border-blue-500/50 rounded p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs text-blue-300 mb-1">Tickets Sold</p>
-                <p className="text-3xl font-bold text-blue-400">
-                  {event.soldSeats}
-                </p>
-                <p className="text-xs text-blue-300 mt-1">
-                  out of {event.maxSeats} total
-                </p>
-              </div>
-              <Ticket className="text-blue-400" size={32} />
+            <div className="flex items-center gap-4 text-sm text-slate-400">
+              <span className="flex items-center gap-1">
+                <Calendar size={14} />
+                {formatDate(event.date)}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock size={14} />
+                {formatTime(event.time)}
+              </span>
             </div>
           </div>
 
-          {/* Occupancy Rate */}
-          <div className="bg-emerald-500/20 border border-emerald-500/50 rounded p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs text-emerald-300 mb-1">Occupancy Rate</p>
-                <p className="text-3xl font-bold text-emerald-400">
-                  {occupancyRate}%
-                </p>
-                <p className="text-xs text-emerald-300 mt-1">
-                  {availableSeats} seats remaining
-                </p>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Tickets Sold */}
+            <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/50 rounded-xl p-6 hover:scale-105 transition-transform">
+              <div className="flex items-start justify-between mb-4">
+                <Ticket className="text-blue-400" size={28} />
+                <div className="bg-blue-500/20 p-2 rounded-lg">
+                  <TrendingUp className="text-blue-400" size={16} />
+                </div>
               </div>
-              <TrendingUp className="text-emerald-400" size={32} />
+              <p className="text-sm text-blue-300 mb-1">Tickets Sold</p>
+              <p className="text-4xl font-bold text-blue-400 mb-1">
+                {event.soldSeats}
+              </p>
+              <p className="text-xs text-blue-300/70">
+                of {event.maxSeats} total
+              </p>
+            </div>
+
+            {/* Occupancy Rate */}
+            <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 border border-emerald-500/50 rounded-xl p-6 hover:scale-105 transition-transform">
+              <div className="flex items-start justify-between mb-4">
+                <Users className="text-emerald-400" size={28} />
+                <div className="bg-emerald-500/20 p-2 rounded-lg">
+                  <Star className="text-emerald-400" size={16} />
+                </div>
+              </div>
+              <p className="text-sm text-emerald-300 mb-1">Occupancy</p>
+              <p className="text-4xl font-bold text-emerald-400 mb-1">
+                {occupancyRate}%
+              </p>
+              <p className="text-xs text-emerald-300/70">
+                {availableSeats} remaining
+              </p>
+            </div>
+
+            {/* Revenue */}
+            <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 border border-purple-500/50 rounded-xl p-6 hover:scale-105 transition-transform">
+              <div className="flex items-start justify-between mb-4">
+                <DollarSign className="text-purple-400" size={28} />
+                <div className="bg-purple-500/20 p-2 rounded-lg">
+                  <Zap className="text-purple-400" size={16} />
+                </div>
+              </div>
+              <p className="text-sm text-purple-300 mb-1">Revenue</p>
+              <p className="text-4xl font-bold text-purple-400 mb-1">
+                {revenue.toFixed(2)}
+              </p>
+              <p className="text-xs text-purple-300/70">
+                APT ../.. {event.ticketPrice}/ticket
+              </p>
             </div>
           </div>
 
-          {/* Revenue */}
-          <div className="bg-purple-500/20 border border-purple-500/50 rounded p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs text-purple-300 mb-1">Total Revenue</p>
-                <p className="text-3xl font-bold text-purple-400">
-                  {revenue.toFixed(2)} APT
-                </p>
-                <p className="text-xs text-purple-300 mt-1">
-                  @{event.ticketPrice} APT per ticket
-                </p>
-              </div>
-              <DollarSign className="text-purple-400" size={32} />
-            </div>
-          </div>
-
-          {/* Availability */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded p-4">
-            <p className="text-xs text-slate-400 mb-3">Seats Availability</p>
-            <div className="w-full bg-slate-700 rounded-full h-2">
+          {/* Availability Progress */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
+            <p className="text-sm font-semibold text-slate-300 mb-4">Seats Availability</p>
+            <div className="w-full bg-slate-700 rounded-full h-3 overflow-hidden">
               <div
-                className="bg-blue-500 h-2 rounded-full transition-all"
+                className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
                 style={{ width: `${occupancyRate}%` }}
               />
             </div>
-            <div className="flex justify-between mt-2 text-xs text-slate-400">
+            <div className="flex justify-between mt-3 text-xs text-slate-400">
               <span>0%</span>
-              <span>{occupancyRate}%</span>
+              <span className="font-bold text-white">{occupancyRate}%</span>
               <span>100%</span>
             </div>
           </div>
 
           {/* Event Details */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded p-4 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-400">Mode:</span>
-              <span className="text-white capitalize">{event.mode}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-400">Permission:</span>
-              <span className="text-white capitalize">{event.permission}</span>
-            </div>
-            {event.location && event.location !== "null" && (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 space-y-3">
+            <h4 className="font-semibold text-white mb-4">Event Details</h4>
+            <div className="grid grid-cols-2 gap-4">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Location:</span>
-                <span className="text-white">{event.location}</span>
+                <span className="text-slate-400">Mode:</span>
+                <span className="text-white capitalize font-medium">{event.mode}</span>
               </div>
-            )}
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-400">Created:</span>
-              <span className="text-white">{formatDate(event.createdAt)}</span>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Permission:</span>
+                <span className="text-white capitalize font-medium">{event.permission}</span>
+              </div>
+              {event.location && event.location !== "null" && (
+                <>
+                  <div className="flex justify-between text-sm col-span-2">
+                    <span className="text-slate-400">Location:</span>
+                    <span className="text-white font-medium">{event.location}</span>
+                  </div>
+                </>
+              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Created:</span>
+                <span className="text-white font-medium">{formatDate(event.createdAt)}</span>
+              </div>
             </div>
           </div>
-
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 rounded-md transition"
-          >
-            Close
-          </button>
         </div>
       </div>
     </div>
   );
 }
 
-// Ticket Details Modal Component
+// Ticket Details Modal
 function TicketDetailsModal({ ticket, onClose }) {
   if (!ticket) return null;
 
@@ -672,101 +747,103 @@ function TicketDetailsModal({ ticket, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 border border-slate-800 text-white rounded-lg max-w-md w-full max-h-screen overflow-y-auto">
-        {/* Close button */}
-        <div className="flex justify-between items-center p-4 border-b border-slate-800">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border border-slate-700 text-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 p-6 flex justify-between items-center z-10">
           <h2 className="text-2xl font-bold">{event.eventName}</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded"
+            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
           >
-            <X size={20} />
+            <X size={24} />
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-6 space-y-6">
           {/* Event Image */}
           {event.banner || event.imageUrl ? (
             <img
               src={event.banner || event.imageUrl}
               alt={event.eventName}
-              className="w-full h-48 object-cover rounded-lg"
+              className="w-full h-56 object-cover rounded-xl"
               onError={(e) => {
                 e.target.style.display = "none";
               }}
             />
           ) : null}
 
-          <p className="text-slate-300">{event.eventDescription}</p>
+          <p className="text-slate-300 leading-relaxed">{event.eventDescription}</p>
 
-          {/* Event Details Grid */}
-          <div className="grid grid-cols-2 gap-2 text-sm text-slate-400">
-            <div className="flex items-center gap-2">
-              <Calendar size={14} />
+          {/* Event Details */}
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="flex items-center gap-2 text-slate-400">
+              <Calendar size={16} className="text-blue-400" />
               <span>{formatDate(event.date)}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Ticket size={14} />
+            <div className="flex items-center gap-2 text-slate-400">
+              <Clock size={16} className="text-blue-400" />
               <span>{formatTime(event.time)}</span>
             </div>
           </div>
 
           {event.location && event.location !== "null" && (
-            <p className="text-sm text-slate-400">
-              📍 {event.location}
-            </p>
+            <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-800/50 border border-slate-700 rounded-lg p-3">
+              <MapPin size={16} className="text-blue-400" />
+              <span>{event.location}</span>
+            </div>
           )}
 
           {/* Price Info */}
           {event.ticketPrice > 0 && (
-            <div className="bg-slate-800/50 border border-slate-700 rounded p-3 text-center">
-              <p className="text-emerald-400 font-semibold">
+            <div className="bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 border border-emerald-500/50 rounded-xl p-4 text-center">
+              <p className="text-2xl font-bold text-emerald-400">
                 {event.ticketPrice} APT
               </p>
             </div>
           )}
 
           {/* Ticket Status */}
-          <div className="bg-green-500/20 border border-green-500/50 rounded p-3 text-center">
-            <p className="text-green-400 font-semibold">✓ Ticket Confirmed</p>
-            <p className="text-xs text-green-300 mt-1">Valid: {ticket.valid ? 'Yes' : 'No'}</p>
+          <div className="bg-gradient-to-r from-green-500/20 to-green-600/20 border border-green-500/50 rounded-xl p-4 text-center">
+            <p className="text-xl font-bold text-green-400 mb-1">✓ Ticket Confirmed</p>
+            <p className="text-sm text-green-300">Valid: {ticket.valid ? 'Yes' : 'No'}</p>
           </div>
 
           {/* Participant Address */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded p-3">
-            <p className="text-xs text-slate-400 mb-1">Participant Address</p>
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+            <p className="text-xs font-semibold text-slate-400 mb-2">Participant Address</p>
             <p className="font-mono text-xs text-slate-300 break-all">
               {ticket.participantAddress}
             </p>
           </div>
 
           {/* QR Code */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded p-4 flex flex-col items-center">
-            <p className="text-sm font-medium text-slate-300 mb-3">QR Code</p>
+          <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl p-6 flex flex-col items-center">
+            <p className="text-sm font-semibold text-slate-300 mb-4">Scan QR Code</p>
             {ticket.qrCode && (
-              <img
-                src={ticket.qrCode}
-                alt="Ticket QR Code"
-                className="w-48 h-48 border-2 border-slate-600 rounded"
-              />
+              <div className="bg-white p-4 rounded-xl">
+                <img
+                  src={ticket.qrCode}
+                  alt="Ticket QR Code"
+                  className="w-56 h-56"
+                />
+              </div>
             )}
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               onClick={downloadQR}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-md transition flex items-center justify-center gap-2"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2"
             >
-              <Download size={16} />
-              Download QR
+              <Download size={18} />
+              Download
             </button>
             <button
               onClick={copyQRToClipboard}
-              className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 rounded-md transition flex items-center justify-center gap-2 border border-slate-700"
+              className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2"
             >
-              <Copy size={16} />
+              <Copy size={18} />
               Copy
             </button>
           </div>
@@ -781,7 +858,7 @@ function TicketDetailsModal({ ticket, onClose }) {
   );
 }
 
-// Event Details Modal Component (For Purchasing)
+// Event Details Modal (For Purchasing)
 function EventDetailsModal({ event, onClose, onPurchase, isPurchasing, isPurchased, onViewTicket }) {
   if (!event) return null;
 
@@ -807,81 +884,82 @@ function EventDetailsModal({ event, onClose, onPurchase, isPurchasing, isPurchas
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 border border-slate-800 text-white rounded-lg max-w-md w-full max-h-screen overflow-y-auto">
-        {/* Close button */}
-        <div className="flex justify-between items-center p-4 border-b border-slate-800">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border border-slate-700 text-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 p-6 flex justify-between items-center z-10">
           <h2 className="text-2xl font-bold">{event.eventName}</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded"
+            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
           >
-            <X size={20} />
+            <X size={24} />
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-6 space-y-6">
           {event.banner || event.imageUrl && (
             <img
               src={event.banner || event.imageUrl}
               alt={event.eventName}
-              className="w-full h-48 object-cover rounded-lg"
+              className="w-full h-56 object-cover rounded-xl"
               onError={(e) => {
                 e.target.style.display = "none";
               }}
             />
           )}
 
-          <p className="text-slate-300">{event.eventDescription}</p>
+          <p className="text-slate-300 leading-relaxed">{event.eventDescription}</p>
 
-          <div className="grid grid-cols-2 gap-2 text-sm text-slate-400">
-            <div className="flex items-center gap-2">
-              <Calendar size={14} />
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="flex items-center gap-2 text-slate-400">
+              <Calendar size={16} className="text-blue-400" />
               <span>{formatDate(event.date)}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Ticket size={14} />
+            <div className="flex items-center gap-2 text-slate-400">
+              <Ticket size={16} className="text-blue-400" />
               <span>{availableSeats} seats left</span>
             </div>
           </div>
 
           {event.location && event.location !== "null" && (
-            <p className="text-sm text-slate-400">
-              📍 {event.location}
-            </p>
-          )}
-
-          {event.ticketPrice > 0 && (
-            <div className="bg-slate-800/50 border border-slate-700 rounded p-3 text-center">
-              <p className="text-emerald-400 font-semibold">
-                {event.ticketPrice} APT per ticket
-              </p>
+            <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-800/50 border border-slate-700 rounded-lg p-3">
+              <MapPin size={16} className="text-blue-400" />
+              <span>{event.location}</span>
             </div>
           )}
 
-          <div className="flex gap-2 pt-4">
+          {event.ticketPrice > 0 && (
+            <div className="bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 border border-emerald-500/50 rounded-xl p-4 text-center">
+              <p className="text-2xl font-bold text-emerald-400">
+                {event.ticketPrice} APT
+              </p>
+              <p className="text-xs text-emerald-300 mt-1">per ticket</p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
             {isPurchased ? (
               <button
                 onClick={onViewTicket}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded-md transition flex items-center justify-center gap-2"
+                className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-2"
               >
-                <Eye size={16} />
+                <Eye size={18} />
                 View Ticket
               </button>
             ) : (
               <button
                 onClick={onPurchase}
                 disabled={isSoldOut || isPurchasing}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white font-medium py-2 rounded-md transition flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-700 disabled:to-slate-700 text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isPurchasing ? (
                   <>
-                    <Loader2 className="animate-spin" size={16} />
-                    Purchasing...
+                    <Loader2 className="animate-spin" size={18} />
+                    Processing...
                   </>
                 ) : (
                   <>
-                    <Ticket size={16} />
+                    <Ticket size={18} />
                     {isSoldOut ? "Sold Out" : "Buy Ticket"}
                   </>
                 )}
@@ -889,9 +967,9 @@ function EventDetailsModal({ event, onClose, onPurchase, isPurchasing, isPurchas
             )}
             <button
               onClick={handleShare}
-              className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 rounded-md transition flex items-center justify-center gap-2 border border-slate-700"
+              className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-4 rounded-xl transition flex items-center justify-center gap-2"
             >
-              <Share2 size={16} />
+              <Share2 size={18} />
               Share
             </button>
           </div>
@@ -937,7 +1015,6 @@ export default function EventDashboard() {
       
       if (result.success && result.data) {
         setEvents(result.data);
-        // Filter hosted events
         const hosted = result.data.filter(e => e.hostAddress?.toLowerCase() === address?.toLowerCase());
         setHostedEvents(hosted);
       } else {
@@ -993,7 +1070,6 @@ export default function EventDashboard() {
     const { name, value, type } = e.target;
     
     if (type === 'file') {
-      // File upload is handled separately
       return;
     }
 
@@ -1024,20 +1100,22 @@ export default function EventDashboard() {
 
     setIsCreating(true);
     try {
-      // Create FormData object
       const formDataToSend = new FormData();
+      
+      // CRITICAL FIX: Add hostAddress
+      formDataToSend.append("hostAddress", address);
+      
       formDataToSend.append("eventName", formData.eventName);
       formDataToSend.append("eventDescription", formData.eventDescription);
       formDataToSend.append("mode", formData.mode);
       formDataToSend.append("date", formData.date);
       formDataToSend.append("time", formData.time);
-      formDataToSend.append("location", formData.location);
-      formDataToSend.append("ticketPrice", formData.ticketPrice);
+      formDataToSend.append("location", formData.location || "");
+      formDataToSend.append("ticketPrice", formData.ticketPrice.toString());
       formDataToSend.append("permission", formData.permission);
-      formDataToSend.append("maxSeats", formData.maxSeats);
+      formDataToSend.append("maxSeats", formData.maxSeats.toString());
       formDataToSend.append("eventBlockchainId", Date.now().toString());
       
-      // Add banner file if present
       if (formData.banner) {
         formDataToSend.append("banner", formData.banner);
       }
@@ -1046,7 +1124,6 @@ export default function EventDashboard() {
         method: "POST",
         headers: {
           ...(token && { 'Authorization': `Bearer ${token}` })
-          // Don't set Content-Type header, let browser set it with boundary
         },
         body: formDataToSend,
       });
@@ -1064,7 +1141,9 @@ export default function EventDashboard() {
         setFormData(INITIAL_FORM_STATE);
         setFormErrors({});
         setSidebarOpen(false);
-        alert("Event created successfully!");
+        
+        alert("🎉 Event created successfully!");
+        fetchEvents();
       } else {
         alert(result.message || "Failed to create event");
       }
@@ -1099,7 +1178,7 @@ export default function EventDashboard() {
 
       if (result.success) {
         setSelectedEvent(null);
-        alert(`Successfully purchased ticket for "${event.eventName}"!`);
+        alert(`🎉 Successfully purchased ticket for "${event.eventName}"!`);
         fetchPurchasedTickets();
       } else {
         alert(result.message || "Failed to purchase ticket");
@@ -1112,37 +1191,44 @@ export default function EventDashboard() {
     }
   };
 
-  // Check if event is already purchased
   const isEventPurchased = (eventId) => {
     return purchasedTickets.some(ticket => ticket.eventId._id === eventId || ticket.eventId === eventId);
   };
 
-  // Get purchased ticket for an event
   const getPurchasedTicket = (eventId) => {
     return purchasedTickets.find(ticket => ticket.eventId._id === eventId || ticket.eventId === eventId);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      {/* Navbar */}
-      <nav className="border-b border-slate-800 bg-slate-900/50 sticky top-0 z-40">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
+      {/* Enhanced Navbar */}
+      <nav className="border-b border-slate-800/50 bg-slate-900/50 backdrop-blur-xl sticky top-0 z-40 shadow-lg shadow-black/10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-blue-400">Tick it</h1>
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-br from-blue-600 to-purple-600 p-2 rounded-xl">
+              <Ticket size={24} />
+            </div>
+            <h1 className="text-3xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Tick it
+            </h1>
+          </div>
           {address ? (
             <div className="flex items-center gap-4">
-              <span className="text-sm text-slate-400">
-                {address.slice(0, 6)}...{address.slice(-4)}
-              </span>
+              <div className="bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2">
+                <span className="text-sm text-slate-300 font-mono">
+                  {address.slice(0, 6)}...{address.slice(-4)}
+                </span>
+              </div>
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition flex items-center gap-2"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all duration-300 flex items-center gap-2 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40"
               >
-                <Plus size={18} />
+                <Plus size={20} />
                 Create Event
               </button>
             </div>
           ) : (
-            <div className="text-sm text-slate-400">
+            <div className="text-sm text-slate-400 bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2">
               Connect wallet to create events
             </div>
           )}
@@ -1151,21 +1237,24 @@ export default function EventDashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Tab Navigation */}
-        <div className="flex gap-8 border-b border-slate-800 mb-8 overflow-x-auto">
-          {["available", "purchased", "hosted"].map((tab) => (
+        {/* Enhanced Tab Navigation */}
+        <div className="flex gap-2 mb-8 p-1 bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto">
+          {[
+            { key: "available", label: "Available Events", icon: Calendar },
+            { key: "purchased", label: "My Tickets", icon: Ticket },
+            { key: "hosted", label: "Hosted Events", icon: Users }
+          ].map(({ key, label, icon: Icon }) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-3 font-medium transition-colors whitespace-nowrap ${
-                activeTab === tab
-                  ? "text-blue-400 border-b-2 border-blue-400"
-                  : "text-slate-400 hover:text-slate-300"
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`flex items-center gap-2 px-6 py-3 font-semibold transition-all duration-300 whitespace-nowrap rounded-lg ${
+                activeTab === key
+                  ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/20"
+                  : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50"
               }`}
             >
-              {tab === "available" && "Available Events"}
-              {tab === "purchased" && "My Tickets"}
-              {tab === "hosted" && "Hosted Events"}
+              <Icon size={18} />
+              {label}
             </button>
           ))}
         </div>
@@ -1181,7 +1270,7 @@ export default function EventDashboard() {
             )}
             {eventsLoading && <LoadingState />}
             {!eventsLoading && events.length === 0 && (
-              <EmptyState message="No events available yet. Be the first to create one!" />
+              <EmptyState message="No events available yet" icon={Calendar} />
             )}
             {!eventsLoading && events.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1207,21 +1296,17 @@ export default function EventDashboard() {
             )}
             {ticketsLoading && <LoadingState />}
             {!ticketsLoading && purchasedTickets.length === 0 && (
-              <EmptyState message="You haven't purchased any tickets yet. Explore available events above!" />
+              <EmptyState message="No tickets purchased yet" icon={Ticket} />
             )}
             {!ticketsLoading && purchasedTickets.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {purchasedTickets.map((ticket) => (
-                  <div
+                  <EventCard
                     key={ticket._id}
-                    className="cursor-pointer"
-                  >
-                    <EventCard
-                      event={ticket.eventId}
-                      isPurchased={true}
-                      onClick={() => setSelectedTicket(ticket)}
-                    />
-                  </div>
+                    event={ticket.eventId}
+                    isPurchased={true}
+                    onClick={() => setSelectedTicket(ticket)}
+                  />
                 ))}
               </div>
             )}
@@ -1232,15 +1317,12 @@ export default function EventDashboard() {
           <div>
             {eventsLoading && <LoadingState />}
             {!eventsLoading && hostedEvents.length === 0 && (
-              <EmptyState message="You haven't created any events yet. Click 'Create Event' to get started!" />
+              <EmptyState message="No events hosted yet" icon={Users} />
             )}
             {!eventsLoading && hostedEvents.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {hostedEvents.map((event) => (
-                  <div
-                    key={event._id}
-                    className="relative"
-                  >
+                  <div key={event._id} className="relative">
                     <EventCard
                       event={event}
                       isHosted={true}
@@ -1248,10 +1330,10 @@ export default function EventDashboard() {
                     />
                     <button
                       onClick={() => setAnalyticsEvent(event)}
-                      className="absolute top-2 right-2 bg-slate-900/90 hover:bg-slate-800 text-white p-2 rounded-md transition"
+                      className="absolute top-4 right-4 bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-white p-2.5 rounded-lg transition-all hover:scale-110 shadow-lg"
                       title="View Analytics"
                     >
-                      <BarChart3 size={18} />
+                      <BarChart3 size={20} />
                     </button>
                   </div>
                 ))}
@@ -1261,36 +1343,41 @@ export default function EventDashboard() {
         )}
       </main>
 
-      {/* Create Event Sidebar */}
+      {/* Enhanced Create Event Sidebar */}
       {sidebarOpen && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
             onClick={() => setSidebarOpen(false)}
           />
-          <div className="fixed right-0 top-0 bottom-0 w-96 bg-slate-900 border-l border-slate-800 overflow-y-auto z-50 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">Create Event</h2>
+          <div className="fixed right-0 top-0 bottom-0 w-full md:w-[480px] bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border-l border-slate-700 overflow-y-auto z-50 shadow-2xl">
+            <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 p-6 flex items-center justify-between z-10">
+              <h2 className="text-2xl font-bold flex items-center gap-3">
+                <Sparkles size={28} className="text-blue-400" />
+                Create Event
+              </h2>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="p-2 hover:bg-slate-800 rounded"
+                className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
               >
-                <X size={20} />
+                <X size={24} />
               </button>
             </div>
 
-            <CreateEventForm
-              formData={formData}
-              onInputChange={handleInputChange}
-              onSubmit={handleCreateEvent}
-              isLoading={isCreating}
-              errors={formErrors}
-            />
+            <div className="p-6">
+              <CreateEventForm
+                formData={formData}
+                onInputChange={handleInputChange}
+                onSubmit={handleCreateEvent}
+                isLoading={isCreating}
+                errors={formErrors}
+              />
+            </div>
           </div>
         </>
       )}
 
-      {/* Event Details Modal (For Purchasing) */}
+      {/* Modals */}
       {selectedEvent && (
         <EventDetailsModal
           event={selectedEvent}
@@ -1305,7 +1392,6 @@ export default function EventDashboard() {
         />
       )}
 
-      {/* Ticket Details Modal */}
       {selectedTicket && (
         <TicketDetailsModal
           ticket={selectedTicket}
@@ -1313,7 +1399,6 @@ export default function EventDashboard() {
         />
       )}
 
-      {/* Analytics Modal */}
       {analyticsEvent && (
         <AnalyticsModal
           event={analyticsEvent}
