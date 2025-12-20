@@ -1,58 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { 
   Plus, Calendar, Share2, X, Check, Ticket, DollarSign, 
-  Lock, Unlock, AlertCircle, Loader2
+  Lock, Unlock, AlertCircle, Loader2, Copy, Download
 } from "lucide-react";
 
-// Mock data for demo
-const MOCK_EVENTS = [
-  {
-    id: "1",
-    eventName: "Web3 Conference 2025",
-    eventDescription: "Annual conference discussing the future of decentralized web",
-    mode: "in-person",
-    date: "2025-03-15",
-    time: "10",
-    location: "San Francisco, CA",
-    ticketPrice: 0.5,
-    permission: "open",
-    imageUrl: "https://images.unsplash.com/photo-1540575467063-178f50002cbc?w=400&h=300&fit=crop",
-    maxSeats: 500,
-    soldSeats: 120,
-    hostAddress: "0x123...",
-  },
-  {
-    id: "2",
-    eventName: "Blockchain Workshop",
-    eventDescription: "Hands-on workshop for developers learning Solidity and smart contracts",
-    mode: "virtual",
-    date: "2025-02-10",
-    time: "14",
-    location: "Virtual",
-    ticketPrice: 0.1,
-    permission: "approval",
-    imageUrl: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=300&fit=crop",
-    maxSeats: 100,
-    soldSeats: 98,
-    hostAddress: "0x456...",
-  },
-  {
-    id: "3",
-    eventName: "Crypto Meetup",
-    eventDescription: "Monthly meetup for crypto enthusiasts and developers",
-    mode: "in-person",
-    date: "2025-01-30",
-    time: "18",
-    location: "New York, NY",
-    ticketPrice: 0,
-    permission: "open",
-    imageUrl: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=300&fit=crop",
-    maxSeats: 50,
-    soldSeats: 50,
-    hostAddress: "0x789...",
-  },
-];
+//const BACKEND_URL = "https://maniform-semiconventional-deon.ngrok-free.dev"; 
 
+const BACKEND_URL = "http://localhost:4000";
 // Constants
 const INITIAL_FORM_STATE = {
   eventName: "",
@@ -120,18 +74,21 @@ const formatDate = (dateString) => {
   });
 };
 
-const formatTime = (hourString) => {
-  const hour = Number(hourString);
-  if (isNaN(hour)) return "Invalid";
-  const period = hour >= 12 ? "PM" : "AM";
-  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+const formatTime = (timeString) => {
+  const timeNum = typeof timeString === 'string' && timeString.includes(':') 
+    ? parseInt(timeString.split(':')[0]) 
+    : Number(timeString);
+  
+  if (isNaN(timeNum)) return "Invalid";
+  const period = timeNum >= 12 ? "PM" : "AM";
+  const displayHour = timeNum === 0 ? 12 : timeNum > 12 ? timeNum - 12 : timeNum;
   return `${displayHour}:00 ${period}`;
 };
 
-const getAvailableSeats = (event) => event.maxSeats - (event.soldSeats || 0);
+const getAvailableSeats = (event) => (event.maxSeats || 0) - (event.soldSeats || 0);
 
 // Event Card Component
-function EventCard({ event, onClick }) {
+function EventCard({ event, onClick, showQR = false }) {
   const availableSeats = getAvailableSeats(event);
   const isSoldOut = availableSeats <= 0;
 
@@ -185,25 +142,34 @@ function EventCard({ event, onClick }) {
         </div>
 
         {/* Seats */}
-        <div className="flex items-center gap-2 text-sm text-slate-400">
-          <Ticket size={14} />
-          <span className={isSoldOut ? "text-red-400 font-medium" : ""}>
-            {availableSeats}/{event.maxSeats} seats
-          </span>
-        </div>
+        {!showQR && (
+          <div className="flex items-center gap-2 text-sm text-slate-400">
+            <Ticket size={14} />
+            <span className={isSoldOut ? "text-red-400 font-medium" : ""}>
+              {availableSeats}/{event.maxSeats} seats
+            </span>
+          </div>
+        )}
 
         {/* Price */}
         {event.ticketPrice > 0 && (
           <div className="flex items-center gap-2 text-sm text-emerald-400 font-medium">
             <DollarSign size={14} />
-            <span>{event.ticketPrice} ETH</span>
+            <span>{event.ticketPrice} APT</span>
           </div>
         )}
 
         {/* Sold Out Badge */}
-        {isSoldOut && (
+        {isSoldOut && !showQR && (
           <div className="bg-red-500/20 border border-red-500/50 rounded px-2 py-1 text-center mt-2">
             <span className="text-xs font-medium text-red-400">Sold Out</span>
+          </div>
+        )}
+
+        {/* Ticket Status Badge */}
+        {showQR && (
+          <div className="bg-green-500/20 border border-green-500/50 rounded px-2 py-1 text-center mt-2">
+            <span className="text-xs font-medium text-green-400">✓ Ticket Purchased</span>
           </div>
         )}
       </div>
@@ -231,12 +197,22 @@ function EmptyState({ message }) {
 }
 
 // Error State Component
-function ErrorState({ message }) {
+function ErrorState({ message, onRetry }) {
   return (
     <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
       <div className="flex items-start gap-3">
         <AlertCircle className="text-red-400 flex-shrink-0 mt-0.5" size={20} />
-        <p className="text-red-400 font-medium">{message}</p>
+        <div className="flex-1">
+          <p className="text-red-400 font-medium">{message}</p>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="mt-2 text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+            >
+              Try Again
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -345,7 +321,7 @@ function CreateEventForm({ formData, onInputChange, onSubmit, isLoading, errors 
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-white mb-1">Ticket Price (ETH)</label>
+          <label className="block text-sm font-medium text-white mb-1">Ticket Price (APT)</label>
           <input
             type="number"
             name="ticketPrice"
@@ -430,8 +406,148 @@ function CreateEventForm({ formData, onInputChange, onSubmit, isLoading, errors 
   );
 }
 
+// Ticket Details Modal Component
+function TicketDetailsModal({ ticket, onClose }) {
+  if (!ticket) return null;
+
+  const event = ticket.eventId;
+  const availableSeats = getAvailableSeats(event);
+
+  const downloadQR = () => {
+    const link = document.createElement('a');
+    link.href = ticket.qrCode;
+    link.download = `${event.eventName}-ticket-${ticket.participantAddress.slice(0, 6)}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const copyQRToClipboard = async () => {
+    try {
+      const img = await fetch(ticket.qrCode);
+      const blob = await img.blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob })
+      ]);
+      alert('QR Code copied to clipboard!');
+    } catch (error) {
+      console.error('Failed to copy QR code:', error);
+      alert('Failed to copy QR code');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-900 border border-slate-800 text-white rounded-lg max-w-md w-full max-h-screen overflow-y-auto">
+        {/* Close button */}
+        <div className="flex justify-between items-center p-4 border-b border-slate-800">
+          <h2 className="text-2xl font-bold">{event.eventName}</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-800 rounded"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* Event Image */}
+          {event.imageUrl && (
+            <img
+              src={event.imageUrl}
+              alt={event.eventName}
+              className="w-full h-48 object-cover rounded-lg"
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+            />
+          )}
+
+          <p className="text-slate-300">{event.eventDescription}</p>
+
+          {/* Event Details Grid */}
+          <div className="grid grid-cols-2 gap-2 text-sm text-slate-400">
+            <div className="flex items-center gap-2">
+              <Calendar size={14} />
+              <span>{formatDate(event.date)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Ticket size={14} />
+              <span>{formatTime(event.time)}</span>
+            </div>
+          </div>
+
+          {event.location && event.location !== "null" && (
+            <p className="text-sm text-slate-400">
+              📍 {event.location}
+            </p>
+          )}
+
+          {/* Price Info */}
+          {event.ticketPrice > 0 && (
+            <div className="bg-slate-800/50 border border-slate-700 rounded p-3 text-center">
+              <p className="text-emerald-400 font-semibold">
+                {event.ticketPrice} APT
+              </p>
+            </div>
+          )}
+
+          {/* Ticket Status */}
+          <div className="bg-green-500/20 border border-green-500/50 rounded p-3 text-center">
+            <p className="text-green-400 font-semibold">✓ Ticket Confirmed</p>
+            <p className="text-xs text-green-300 mt-1">Valid: {ticket.valid ? 'Yes' : 'No'}</p>
+          </div>
+
+          {/* Participant Address */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded p-3">
+            <p className="text-xs text-slate-400 mb-1">Participant Address</p>
+            <p className="font-mono text-xs text-slate-300 break-all">
+              {ticket.participantAddress}
+            </p>
+          </div>
+
+          {/* QR Code */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded p-4 flex flex-col items-center">
+            <p className="text-sm font-medium text-slate-300 mb-3">QR Code</p>
+            {ticket.qrCode && (
+              <img
+                src={ticket.qrCode}
+                alt="Ticket QR Code"
+                className="w-48 h-48 border-2 border-slate-600 rounded"
+              />
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={downloadQR}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-md transition flex items-center justify-center gap-2"
+            >
+              <Download size={16} />
+              Download QR
+            </button>
+            <button
+              onClick={copyQRToClipboard}
+              className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 rounded-md transition flex items-center justify-center gap-2 border border-slate-700"
+            >
+              <Copy size={16} />
+              Copy
+            </button>
+          </div>
+
+          {/* Ticket Created Date */}
+          <p className="text-xs text-slate-500 text-center">
+            Ticket issued: {formatDate(ticket.createdAt)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Event Details Modal Component
-function EventDetailsModal({ event, onClose, onJoin }) {
+function EventDetailsModal({ event, onClose, onJoin, isJoining }) {
   if (!event) return null;
 
   const availableSeats = getAvailableSeats(event);
@@ -494,7 +610,7 @@ function EventDetailsModal({ event, onClose, onJoin }) {
             </div>
           </div>
 
-          {event.location && (
+          {event.location && event.location !== "null" && (
             <p className="text-sm text-slate-400">
               📍 {event.location}
             </p>
@@ -503,7 +619,7 @@ function EventDetailsModal({ event, onClose, onJoin }) {
           {event.ticketPrice > 0 && (
             <div className="bg-slate-800/50 border border-slate-700 rounded p-3 text-center">
               <p className="text-emerald-400 font-semibold">
-                {event.ticketPrice} ETH per ticket
+                {event.ticketPrice} APT per ticket
               </p>
             </div>
           )}
@@ -511,11 +627,20 @@ function EventDetailsModal({ event, onClose, onJoin }) {
           <div className="flex gap-2 pt-4">
             <button
               onClick={onJoin}
-              disabled={isSoldOut}
+              disabled={isSoldOut || isJoining}
               className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white font-medium py-2 rounded-md transition flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <Ticket size={16} />
-              {isSoldOut ? "Sold Out" : "Join Event"}
+              {isJoining ? (
+                <>
+                  <Loader2 className="animate-spin" size={16} />
+                  Joining...
+                </>
+              ) : (
+                <>
+                  <Ticket size={16} />
+                  {isSoldOut ? "Sold Out" : "Join Event"}
+                </>
+              )}
             </button>
             <button
               onClick={handleShare}
@@ -535,12 +660,84 @@ function EventDetailsModal({ event, onClose, onJoin }) {
 export default function EventDashboard() {
   const [activeTab, setActiveTab] = useState("available");
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedTicket, setSelectedTicket] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
-  const [events, setEvents] = useState(MOCK_EVENTS);
-  const [joinedEvents, setJoinedEvents] = useState([MOCK_EVENTS[1]]);
+  const [events, setEvents] = useState([]);
+  const [joinedTickets, setJoinedTickets] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState(null);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [ticketsError, setTicketsError] = useState(null);
+
+  const address = localStorage.getItem("address");
+  const token = localStorage.getItem("token"); // Assuming you store JWT token
+
+  // Fetch all events
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      setEventsLoading(true);
+      setEventsError(null);
+      const response = await fetch(`${BACKEND_URL}/api/events`);
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setEvents(result.data);
+      } else {
+        setEventsError("Failed to load events");
+      }
+    } catch (error) {
+      setEventsError(error.message || "Failed to load events");
+      console.error("Failed to fetch events:", error);
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
+  // Fetch joined tickets
+  useEffect(() => {
+    if (!address || !token) {
+      setJoinedTickets([]);
+      setTicketsLoading(false);
+      return;
+    }
+    
+    fetchJoinedTickets();
+  }, [address, token]);
+
+  const fetchJoinedTickets = async () => {
+    try {
+      setTicketsLoading(true);
+      setTicketsError(null);
+      
+      const response = await fetch(`${BACKEND_URL}/api/tickets/my?address=${address}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setJoinedTickets(result.data);
+      } else {
+        setTicketsError("Failed to load tickets");
+      }
+    } catch (error) {
+      setTicketsError(error.message || "Failed to load tickets");
+      console.error("Failed to fetch tickets:", error);
+    } finally {
+      setTicketsLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
@@ -557,6 +754,11 @@ export default function EventDashboard() {
   };
 
   const handleCreateEvent = async () => {
+    if (!address) {
+      alert("Please connect your wallet first");
+      return;
+    }
+
     const errors = validateEventForm(formData);
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -564,30 +766,76 @@ export default function EventDashboard() {
     }
 
     setIsCreating(true);
-    // Simulate API call
-    setTimeout(() => {
-      const newEvent = {
-        id: String(events.length + 1),
-        ...formData,
-        date: formData.date,
-        soldSeats: 0,
-        hostAddress: "0xuser...",
-      };
-      setEvents((prev) => [newEvent, ...prev]);
-      setFormData(INITIAL_FORM_STATE);
-      setFormErrors({});
-      setSidebarOpen(false);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/events`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify({
+          ...formData,
+          date: new Date(formData.date).toISOString(),
+          hostAddress: address,
+          eventBlockchainId: Date.now(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success || response.ok) {
+        setEvents((prev) => [result.data || result, ...prev]);
+        setFormData(INITIAL_FORM_STATE);
+        setFormErrors({});
+        setSidebarOpen(false);
+        alert("Event created successfully!");
+      } else {
+        alert(result.message || "Failed to create event");
+      }
+    } catch (error) {
+      console.error("Failed to create event:", error);
+      alert(error.message || "Failed to create event. Please try again.");
+    } finally {
       setIsCreating(false);
-      alert("Event created successfully!");
-    }, 800);
+    }
   };
 
-  const handleJoinEvent = (event) => {
-    setJoinedEvents((prev) => 
-      prev.find(e => e.id === event.id) ? prev : [event, ...prev]
-    );
-    setSelectedEvent(null);
-    alert(`Successfully joined "${event.eventName}"!`);
+  const handleJoinEvent = async (event) => {
+    if (!address) {
+      alert("Please connect your wallet first");
+      return;
+    }
+
+    setIsJoining(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/tickets`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify({
+          eventId: event._id,
+          buyerAddress: address,
+          quantity: 1,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success || response.ok) {
+        setSelectedEvent(null);
+        alert(`Successfully joined "${event.eventName}"!`);
+        fetchJoinedTickets(); // Refresh tickets
+      } else {
+        alert(result.message || "Failed to join event");
+      }
+    } catch (error) {
+      console.error("Failed to join event:", error);
+      alert(error.message || "Failed to join event. Please try again.");
+    } finally {
+      setIsJoining(false);
+    }
   };
 
   return (
@@ -595,14 +843,25 @@ export default function EventDashboard() {
       {/* Navbar */}
       <nav className="border-b border-slate-800 bg-slate-900/50 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-blue-400">EventHub</h1>
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition flex items-center gap-2"
-          >
-            <Plus size={18} />
-            Create Event
-          </button>
+          <h1 className="text-2xl font-bold text-blue-400">Tick it</h1>
+          {address ? (
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-slate-400">
+                {address.slice(0, 6)}...{address.slice(-4)}
+              </span>
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition flex items-center gap-2"
+              >
+                <Plus size={18} />
+                Create Event
+              </button>
+            </div>
+          ) : (
+            <div className="text-sm text-slate-400">
+              Connect wallet to create events
+            </div>
+          )}
         </div>
       </nav>
 
@@ -620,7 +879,7 @@ export default function EventDashboard() {
                   : "text-slate-400 hover:text-slate-300"
               }`}
             >
-              {tab === "available" ? "Available Events" : "Joined Events"}
+              {tab === "available" ? "Available Events" : "My Tickets"}
             </button>
           ))}
         </div>
@@ -628,13 +887,21 @@ export default function EventDashboard() {
         {/* Tab Content */}
         {activeTab === "available" && (
           <div>
-            {events.length === 0 ? (
+            {eventsError && (
+              <ErrorState 
+                message={`Failed to load events: ${eventsError}`}
+                onRetry={fetchEvents}
+              />
+            )}
+            {eventsLoading && <LoadingState />}
+            {!eventsLoading && events.length === 0 && (
               <EmptyState message="No events available yet. Be the first to create one!" />
-            ) : (
+            )}
+            {!eventsLoading && events.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {events.map((event) => (
                   <EventCard
-                    key={event.id}
+                    key={event._id}
                     event={event}
                     onClick={() => setSelectedEvent(event)}
                   />
@@ -646,16 +913,30 @@ export default function EventDashboard() {
 
         {activeTab === "joined" && (
           <div>
-            {joinedEvents.length === 0 ? (
-              <EmptyState message="You haven't joined any events yet. Explore available events above!" />
-            ) : (
+            {ticketsError && (
+              <ErrorState 
+                message={`Failed to load tickets: ${ticketsError}`}
+                onRetry={fetchJoinedTickets}
+              />
+            )}
+            {ticketsLoading && <LoadingState />}
+            {!ticketsLoading && joinedTickets.length === 0 && (
+              <EmptyState message="You haven't purchased any tickets yet. Explore available events above!" />
+            )}
+            {!ticketsLoading && joinedTickets.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {joinedEvents.map((event) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    onClick={() => setSelectedEvent(event)}
-                  />
+                {joinedTickets.map((ticket) => (
+                  <div
+                    key={ticket._id}
+                    onClick={() => setSelectedTicket(ticket)}
+                    className="cursor-pointer"
+                  >
+                    <EventCard
+                      event={ticket.eventId}
+                      showQR={true}
+                      onClick={() => setSelectedTicket(ticket)}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -698,6 +979,15 @@ export default function EventDashboard() {
           event={selectedEvent}
           onClose={() => setSelectedEvent(null)}
           onJoin={() => handleJoinEvent(selectedEvent)}
+          isJoining={isJoining}
+        />
+      )}
+
+      {/* Ticket Details Modal */}
+      {selectedTicket && (
+        <TicketDetailsModal
+          ticket={selectedTicket}
+          onClose={() => setSelectedTicket(null)}
         />
       )}
     </div>
