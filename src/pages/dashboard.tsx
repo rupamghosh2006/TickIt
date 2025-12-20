@@ -1015,7 +1015,25 @@ export default function EventDashboard() {
       
       if (result.success && result.data) {
         setEvents(result.data);
-        const hosted = result.data.filter(e => e.hostAddress?.toLowerCase() === address?.toLowerCase());
+        // Normalize addresses before comparison
+      const normalizeAddress = (addr) => {
+        if (!addr) return '';
+        let normalized = addr.trim();
+        // Remove surrounding quotes
+        normalized = normalized.replace(/^["']|["']$/g, '');
+        // Remove 0x prefix
+        normalized = normalized.toLowerCase().replace(/^0x/, '');
+        return normalized;
+      };
+
+      const hosted = result.data.filter(e => 
+        normalizeAddress(e.hostAddress) === normalizeAddress(address)
+      );
+
+      // For debugging:
+      console.log('Normalized host:', normalizeAddress(result.data[0].hostAddress));
+      console.log('Normalized address:', normalizeAddress(address));
+      console.log('Match:', normalizeAddress(result.data[0].hostAddress) === normalizeAddress(address));
         setHostedEvents(hosted);
       } else {
         setEventsError("Failed to load events");
