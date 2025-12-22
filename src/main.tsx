@@ -10,8 +10,8 @@ import Dashboard from "./pages/dashboard.tsx";
 createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
         <Routes>
+            <Route index element={<App />} />
             <Route element={<BaseLayout />}>
-                <Route index element={<App />} />
                 <Route path='/login' element={<Auth />} />
                 <Route path='/dashboard' element={<Dashboard />} />
             </Route>
