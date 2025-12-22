@@ -1030,10 +1030,6 @@ export default function EventDashboard() {
         normalizeAddress(e.hostAddress) === normalizeAddress(address)
       );
 
-      // For debugging:
-      console.log('Normalized host:', normalizeAddress(result.data[0].hostAddress));
-      console.log('Normalized address:', normalizeAddress(address));
-      console.log('Match:', normalizeAddress(result.data[0].hostAddress) === normalizeAddress(address));
         setHostedEvents(hosted);
       } else {
         setEventsError("Failed to load events");
@@ -1105,73 +1101,97 @@ export default function EventDashboard() {
   };
 
   const handleCreateEvent = async () => {
-    if (!address) {
-      alert("Please connect your wallet first");
-      return;
+  if (!address) {
+    alert("Please connect your wallet first");
+    return;
+  }
+
+  console.log("Current formData state:", {
+    eventName: formData.eventName,
+    banner: formData.banner,
+    bannerType: typeof formData.banner,
+    bannerInstanceof: formData.banner instanceof File,
+    bannerPreview: formData.bannerPreview ? "exists" : "null",
+  });
+
+  const errors = validateEventForm(formData);
+  if (Object.keys(errors).length > 0) {
+    setFormErrors(errors);
+    return;
+  }
+
+  setIsCreating(true);
+
+  try {
+    const formDataToSend = new FormData();
+
+    const cleanAddress = address.trim().replace(/^["']|["']$/g, "");
+
+    /* ---------------- FIX: ENSURE REAL FILE ---------------- */
+    let bannerFile: File | null = null;
+
+    if (formData.banner instanceof File) {
+      bannerFile = formData.banner;
+    } else if (formData.bannerPreview) {
+      // Convert blob URL → File (fallback fix)
+      const blob = await fetch(formData.bannerPreview).then(res => res.blob());
+      bannerFile = new File([blob], "banner.jpg", { type: blob.type });
     }
 
-    const errors = validateEventForm(formData);
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
-
-    setIsCreating(true);
-    try {
-      const formDataToSend = new FormData();
-      
-      // CRITICAL FIX: Add hostAddress
-      formDataToSend.append("hostAddress", address);
-      
-      formDataToSend.append("eventName", formData.eventName);
-      formDataToSend.append("eventDescription", formData.eventDescription);
-      formDataToSend.append("mode", formData.mode);
-      formDataToSend.append("date", formData.date);
-      formDataToSend.append("time", formData.time);
-      formDataToSend.append("location", formData.location || "");
-      formDataToSend.append("ticketPrice", formData.ticketPrice.toString());
-      formDataToSend.append("permission", formData.permission);
-      formDataToSend.append("maxSeats", formData.maxSeats.toString());
-      formDataToSend.append("eventBlockchainId", Date.now().toString());
-      
-      if (formData.banner) {
-        formDataToSend.append("banner", formData.banner);
-      }
-
-      const response = await fetch(`${BACKEND_URL}/api/events`, {
-        method: "POST",
-        headers: {
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: formDataToSend,
-      });
-
-      const result = await response.json();
-
-      if (result.success || response.ok) {
-        const newEvent = result.data || result;
-        setEvents((prev) => [newEvent, ...prev]);
-        
-        if (newEvent.hostAddress?.toLowerCase() === address?.toLowerCase()) {
-          setHostedEvents((prev) => [newEvent, ...prev]);
-        }
-        
-        setFormData(INITIAL_FORM_STATE);
-        setFormErrors({});
-        setSidebarOpen(false);
-        
-        alert("🎉 Event created successfully!");
-        fetchEvents();
-      } else {
-        alert(result.message || "Failed to create event");
-      }
-    } catch (error) {
-      console.error("Failed to create event:", error);
-      alert(error.message || "Failed to create event. Please try again.");
-    } finally {
+    if (!bannerFile) {
+      alert("Please upload a banner image");
       setIsCreating(false);
+      return;
     }
-  };
+
+    formDataToSend.append("banner", bannerFile);
+    console.log("Banner attached:", bannerFile.name, bannerFile.size);
+
+    /* ---------------- REQUIRED FIELDS ---------------- */
+    formDataToSend.append("hostAddress", cleanAddress);
+    formDataToSend.append("eventName", formData.eventName.trim());
+    formDataToSend.append("eventDescription", formData.eventDescription.trim());
+    formDataToSend.append("mode", formData.mode);
+    formDataToSend.append("date", formData.date);
+    formDataToSend.append("time", formData.time);
+    formDataToSend.append("location", formData.location?.trim() || "Virtual");
+    formDataToSend.append("ticketPrice", String(Number(formData.ticketPrice)));
+    formDataToSend.append("permission", formData.permission);
+    formDataToSend.append("maxSeats", String(Number(formData.maxSeats)));
+    formDataToSend.append("soldSeats", "0");
+    formDataToSend.append(
+      "eventBlockchainId",
+      `event_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    );
+
+    const response = await fetch(`${BACKEND_URL}/api/events`, {
+      method: "POST",
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formDataToSend,
+    });
+
+    const result = await response.json();
+    console.log("Create event response:", result);
+
+    if (response.ok && result.success !== false) {
+      await fetchEvents();
+      setFormData(INITIAL_FORM_STATE);
+      setFormErrors({});
+      setSidebarOpen(false);
+      alert("🎉 Event created successfully!");
+    } else {
+      throw new Error(result.message || "Event creation failed");
+    }
+  } catch (error: any) {
+    console.error("Create event error:", error);
+    alert(error.message || "Something went wrong");
+  } finally {
+    setIsCreating(false);
+  }
+};
+
 
   const handlePurchaseTicket = async (event) => {
     if (!address) {
