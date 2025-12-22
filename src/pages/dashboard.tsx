@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { 
-  Plus, Calendar, Share2, X, Check, Ticket, DollarSign, 
+  Plus, Calendar, Share2, X, Ticket, DollarSign, 
   Lock, Unlock, AlertCircle, Loader2, Copy, Download, Eye,
   BarChart3, TrendingUp, Users, Upload, MapPin, Clock,
-  Sparkles, Zap, Star, ChevronRight, Search, Filter
+  Sparkles, Zap, Star, ChevronRight,
+  LogOut,
 } from "lucide-react";
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { Warp } from '@paper-design/shaders-react';
 
-const BACKEND_URL = "http://localhost:4000";
+const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
 // Constants
 const INITIAL_FORM_STATE = {
@@ -101,6 +104,7 @@ function EventCard({ event, onClick, isPurchased = false, isHosted = false }) {
       onClick={onClick}
       className="group relative bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border border-slate-700/50 hover:border-blue-500/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/10 rounded-2xl overflow-hidden"
     >
+      
       {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       
@@ -981,6 +985,7 @@ function EventDetailsModal({ event, onClose, onPurchase, isPurchasing, isPurchas
 
 // Main Component
 export default function EventDashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("available");
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedTicket, setSelectedTicket] = useState(null);
@@ -1238,13 +1243,30 @@ export default function EventDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
+    <div className="min-h-screen overflow-hidden relative text-white">
+      
+
+<Warp className="absolute inset-0 -z-10"
+  width="100%"
+  height="100%"
+  colors={["#14120f", "#d2a76a", "#dfc5a9", "#0b0b0b"]}
+  proportion={0.24}
+  softness={1}
+  distortion={0.21}
+  swirl={0.57}
+  swirlIterations={10}
+  shape="edge"
+  shapeScale={0.75}
+  speed={4.2}
+  scale={2}
+/>
+
       {/* Enhanced Navbar */}
       <nav className="border-b border-slate-800/50 bg-slate-900/50 backdrop-blur-xl sticky top-0 z-40 shadow-lg shadow-black/10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-gradient-to-br from-blue-600 to-purple-600 p-2 rounded-xl">
-              <Ticket size={24} />
+              {/* <Ticket size={24} /> */}
             </div>
             <h1 className="text-3xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               Tick it
@@ -1270,6 +1292,29 @@ export default function EventDashboard() {
               Connect wallet to create events
             </div>
           )}
+          <button
+            onClick={async () => {
+              try {
+              
+
+                // 2️⃣ Remove auth data
+                localStorage.removeItem("token");
+                localStorage.removeItem("address");
+
+                toast.success("Logged out successfully");
+
+                // optional redirect / state reset
+                navigate("/", { replace: true });
+              } catch (err) {
+                console.error("Logout failed:", err);
+                toast.error("Logout failed");
+              }
+            }}
+            className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition"
+          >
+            <LogOut size={16} className="inline mr-2" />
+            Logout
+          </button>
         </div>
       </nav>
 

@@ -4,13 +4,6 @@ import { MeshGradient } from "@paper-design/shaders-react";
 import axios from "axios";
 import { toast } from "sonner";
 
-import {
-    InputOTP,
-    InputOTPGroup,
-    InputOTPSlot,
-} from "../../components/ui/input-otp";
-import { Input } from "../../components/ui/input";
-import { Button } from "../../components/ui/button";
 import Address from "../../components/address";
 
 const backend = import.meta.env.VITE_PUBLIC_BACKEND_URL;
@@ -30,14 +23,12 @@ export default function Auth() {
     const navigate = useNavigate();
 
     const [address, setAddress] = useState<string | null>(ls.get("address"));
-    const [email, setEmail] = useState<string | null>(ls.get("email"));
-    const [verified, setVerified] = useState<boolean>(ls.get("verified") === true);
 
     useEffect(() => {
-        if (address && email && verified) {
+        if (address) {
             navigate("/dashboard");
         }
-    }, [address, email, verified, navigate]);
+    }, [address, navigate]);
 
     return (
         <div className="relative h-screen flex items-center justify-center overflow-hidden text-white">
@@ -62,163 +53,7 @@ export default function Auth() {
                         }}
                     />
                 )}
-
-                {address && !email && (
-                    <Email
-                        onSuccess={(e: string) => {
-                            ls.set("email", e);
-                            setEmail(e);
-                        }}
-                    />
-                )}
-
-                {address && email && !verified && (
-                    <SendOTP
-                        onVerified={() => {
-                            ls.set("verified", true);
-                            setVerified(true);
-                            toast.success("Verification successful");
-                            navigate("/dashboard");
-                        }}
-                    />
-                )}
             </div>
-        </div>
-    );
-}
-
-function SendOTP({ onVerified }: { onVerified: () => void }) {
-    const [otp, setOtp] = useState("");
-    const [loading, setLoading] = useState(false);
-    const firstSlotRef = useRef<HTMLDivElement | null>(null);
-
-    const token = ls.get("token");
-    const email = ls.get("email");
-
-    useEffect(() => {
-        requestAnimationFrame(() => {
-            firstSlotRef.current?.querySelector("input")?.focus();
-        });
-    }, []);
-
-    const submit = async (v: string) => {
-        if (loading) return;
-
-        if (!token) {
-            toast.error("Session expired");
-            location.reload();
-            return;
-        }
-
-        try {
-            setLoading(true);
-            await axios.post(
-                `${backend}/api/user/verify-otp`,
-                { email, otp: v },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            onVerified();
-        } catch {
-            toast.error("OTP verification failed");
-            setOtp("");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="w-full flex flex-col items-center gap-6">
-            <div className="text-center space-y-1">
-                <h2 className="text-xl font-semibold text-white">
-                    Verify your email
-                </h2>
-                <p className="text-sm text-stone-400">
-                    Enter the 6-digit code sent to your email
-                </p>
-            </div>
-
-            <InputOTP
-                maxLength={6}
-                value={otp}
-                onChange={(v) => {
-                    setOtp(v);
-                    if (v.length === 6) submit(v);
-                }}
-                disabled={loading}
-            >
-                <InputOTPGroup>
-                    {[0, 1, 2, 3, 4, 5].map((i) => (
-                        <InputOTPSlot
-                            key={i}
-                            index={i}
-                            ref={i === 0 ? firstSlotRef : undefined}
-                        />
-                    ))}
-                </InputOTPGroup>
-            </InputOTP>
-        </div>
-    );
-}
-
-function Email({ onSuccess }: { onSuccess: (e: string) => void }) {
-    const [email, setEmail] = useState("");
-    const [loading, setLoading] = useState(false);
-    const token = ls.get("token");
-
-    const submit = async () => {
-        if (!email.includes("@")) {
-            toast.error("Invalid email");
-            return;
-        }
-
-        if (!token) {
-            toast.error("Session expired");
-            location.reload();
-            return;
-        }
-
-        try {
-            setLoading(true);
-            await axios.post(
-                `${backend}/api/user/send-otp`,
-                { email },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            toast.success("OTP sent");
-            onSuccess(email);
-        } catch {
-            toast.error("Failed to send OTP");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="w-full flex flex-col gap-6">
-            <div className="text-center space-y-1">
-                <h2 className="text-xl font-semibold text-white">
-                    Continue with email
-                </h2>
-                <p className="text-sm text-stone-400">
-                    We’ll send you a one-time verification code
-                </p>
-            </div>
-
-            <Input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email address"
-                disabled={loading}
-            />
-
-            <Button
-                onClick={submit}
-                disabled={loading}
-                variant="outline"
-                className="text-black"
-            >
-                {loading ? "Sending..." : "Send OTP"}
-            </Button>
         </div>
     );
 }
