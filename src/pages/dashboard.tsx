@@ -9,7 +9,7 @@ import {
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { Warp } from '@paper-design/shaders-react';
+import { Warp, NeuroNoise } from '@paper-design/shaders-react';
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -98,14 +98,34 @@ function EventCard({ event, onClick, isPurchased = false, isHosted = false }) {
   const availableSeats = getAvailableSeats(event);
   const isSoldOut = availableSeats <= 0;
   const occupancyRate = ((event.soldSeats / event.maxSeats) * 100).toFixed(0);
+ 
+
+ function getRandomInRange(): number {
+  const min = 0.35;
+  const max = 0.70;
+  return Math.random() * (max - min) + min;
+} 
 
   return (
     <div
       onClick={onClick}
-      className="group relative bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border border-slate-700/50 hover:border-blue-500/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/10 rounded-2xl overflow-hidden"
+      className="group relative border border-slate-700/50 hover:border-blue-500/50 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/10 rounded-2xl overflow-hidden"
     >
-      
-      {/* Gradient Overlay */}
+        <NeuroNoise
+            width="100%"
+            height="100%"
+            className={`absolute inset-0 -z-1 opacity-95`}
+            colorFront="#ffffff"
+            colorMid="#47a6ff"
+            colorBack="#000000"
+            brightness={0.17}
+            contrast={0.35}
+            speed={getRandomInRange()} 
+            scale={getRandomInRange()} 
+            rotation={getRandomInRange()}
+        />
+
+        {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       
       {/* Image with Overlay */}
@@ -117,8 +137,7 @@ function EventCard({ event, onClick, isPurchased = false, isHosted = false }) {
               alt={event.eventName}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
               onError={(e) => {
-                (e.target as HTMLElement).style.display = "none";
-              }}
+              (e.target as HTMLElement).style.display = "none";              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent" />
           </>
@@ -239,17 +258,103 @@ function EventCard({ event, onClick, isPurchased = false, isHosted = false }) {
   );
 }
 
+function EventCardSkeleton() {
+  return (
+    <div className="bg-slate-900/80 rounded-3xl overflow-hidden border border-slate-700/30 backdrop-blur-sm">
+      {/* Image skeleton with shimmer effect */}
+      <div className="relative h-56 bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 overflow-hidden">
+        <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-600/20 to-transparent"></div>
+        <div className="absolute top-4 left-4 w-20 h-9 bg-emerald-500/20 rounded-full overflow-hidden">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent"></div>
+        </div>
+      </div>
+      
+      {/* Content skeleton */}
+      <div className="p-6 space-y-5">
+        {/* Title skeleton */}
+        <div className="h-8 bg-slate-700/40 rounded-lg w-2/3 overflow-hidden relative">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-600/30 to-transparent"></div>
+        </div>
+        
+        {/* Date and time skeleton */}
+        <div className="flex items-center gap-6">
+          <div className="h-5 bg-slate-700/40 rounded w-32 overflow-hidden relative">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-600/30 to-transparent"></div>
+          </div>
+          <div className="h-5 bg-slate-700/40 rounded w-24 overflow-hidden relative">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-600/30 to-transparent"></div>
+          </div>
+        </div>
+        
+        {/* Location skeleton */}
+        <div className="h-5 bg-slate-700/40 rounded w-20 overflow-hidden relative">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-600/30 to-transparent"></div>
+        </div>
+        
+        {/* Availability section */}
+        <div className="space-y-2 pt-2">
+          <div className="flex justify-between items-center">
+            <div className="h-4 bg-slate-700/40 rounded w-24 overflow-hidden relative">
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-600/30 to-transparent"></div>
+            </div>
+            <div className="h-4 bg-slate-700/40 rounded w-16 overflow-hidden relative">
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-600/30 to-transparent"></div>
+            </div>
+          </div>
+          <div className="h-1.5 bg-slate-800/60 rounded-full overflow-hidden">
+            <div className="h-full bg-blue-500/30 rounded-full w-3/5 relative overflow-hidden">
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-blue-400/40 to-transparent"></div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Price skeleton */}
+        <div className="flex justify-between items-center pt-3">
+          <div className="h-9 bg-slate-700/40 rounded-lg w-28 overflow-hidden relative">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-600/30 to-transparent"></div>
+          </div>
+          <div className="w-9 h-9 bg-slate-700/40 rounded-full overflow-hidden relative">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-600/30 to-transparent"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Modern Loading State
 function LoadingState() {
   return (
-    <div className="flex flex-col items-center justify-center py-16">
-      <div className="relative">
-        <Loader2 className="animate-spin text-blue-500" size={48} />
-        <div className="absolute inset-0 animate-ping">
-          <Loader2 className="text-blue-500/30" size={48} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950/20 p-8">
+      <style>{`
+        @keyframes shimmer {
+          100% {
+            transform: translateX(100%);
+          }
+        }
+      `}</style>
+      
+      <div className="max-w-7xl mx-auto">
+        {/* Navigation tabs skeleton */}
+        <div className="flex gap-4 mb-8">
+          <div className="h-12 bg-blue-600/30 rounded-2xl w-48 overflow-hidden relative">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-blue-500/20 to-transparent"></div>
+          </div>
+          <div className="h-12 bg-slate-800/30 rounded-2xl w-36 overflow-hidden relative">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-600/20 to-transparent"></div>
+          </div>
+          <div className="h-12 bg-slate-800/30 rounded-2xl w-44 overflow-hidden relative">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-600/20 to-transparent"></div>
+          </div>
+        </div>
+        
+        {/* Cards grid - 3 cards side by side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <EventCardSkeleton />
+          <EventCardSkeleton />
+          <EventCardSkeleton />
         </div>
       </div>
-      <p className="mt-4 text-slate-400">Loading amazing events...</p>
     </div>
   );
 }
@@ -771,8 +876,7 @@ function TicketDetailsModal({ ticket, onClose }) {
               alt={event.eventName}
               className="w-full h-56 object-cover rounded-xl"
               onError={(e) => {
-                (e.target as HTMLElement).style.display = "none";
-              }}
+(e.target as HTMLElement).style.display = "none";              }}
             />
           ) : null}
 
@@ -907,8 +1011,7 @@ function EventDetailsModal({ event, onClose, onPurchase, isPurchasing, isPurchas
               alt={event.eventName}
               className="w-full h-56 object-cover rounded-xl"
               onError={(e) => {
-                (e.target as HTMLElement).style.display = "none";
-              }}
+(e.target as HTMLElement).style.display = "none";              }}
             />
           )}
 
